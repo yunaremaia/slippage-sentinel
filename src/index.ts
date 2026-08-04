@@ -1,36 +1,25 @@
 /**
  * Slippage Sentinel — Agent Entrypoint
- * Built with @lucid-dreams/agent-kit + x402-hono
+ * Built with @lucid-dreams/agent-kit + x402
  */
 
 import { createAgentApp } from "@lucid-dreams/agent-kit";
-import { paymentMiddleware } from "x402-hono";
 import { z } from "zod";
 import { handleSlippageQuery, SlippageInputSchema } from "./lib/index.js";
 
-const { app, addEntrypoint } = createAgentApp({
+const { app, addEntrypoint }: { app: any; addEntrypoint: any } = createAgentApp({
   name: "slippage-sentinel",
-  version: "0.1.0",
+  version: "1.0.0",
   description: "Estimate safe slippage tolerance for any swap route",
 });
-
-// Type annotation to satisfy TypeScript
-const typedApp = app as any;
 
 addEntrypoint({
   key: "slippage",
   description: "Estimate safe slippage for a swap route",
+  price: process.env.DEFAULT_PRICE ?? "0.001",
   input: SlippageInputSchema,
-  async handler({ input }) {
+  async handler({ input }: { input: any }) {
     const result = await handleSlippageQuery(input);
-    
-    if (result.error) {
-      return {
-        output: result,
-        usage: { total_tokens: 0 },
-      };
-    }
-
     return {
       output: result,
       usage: { total_tokens: 0 },
@@ -38,22 +27,7 @@ addEntrypoint({
   },
 });
 
-typedApp.get("/health", (c: any) => c.json({ ok: true, version: "0.1.0" }));
+app.get("/health", (c: any) => c.json({ ok: true, version: "1.0.0" }));
 
-if (process.env.NODE_ENV !== "test") {
-  const receiver = process.env.X402_RECEIVER_ADDRESS;
-  if (receiver) {
-    const pricing = process.env.X402_PRICING || "0.0001";
-    const asset = process.env.X402_ASSET || "USDC";
-    const network = process.env.X402_NETWORK || "base";
-    const mw = paymentMiddleware(receiver as `0x${string}`, {
-      price: pricing,
-      network,
-      config: { asset } as never,
-    });
-    typedApp.use("/entrypoints/*", mw as never);
-  }
-}
-
-export default typedApp;
-export { typedApp as app };
+export default app;
+export { app };
